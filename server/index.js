@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import OpenAI from "openai";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,7 +10,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -25,24 +23,38 @@ app.get("/", (req, res) => {
 app.post("/generate", async (req, res) => {
   try {
     const { review, userId } = req.body;
+
     let { data: user } = await supabase
       .from("users").select("credits").eq("id", userId).single();
+
     if (!user) {
       await supabase.from("users").insert({ id: userId, credits: 3 });
       user = { credits: 3 };
     }
+
     if (user.credits <= 0) {
       return res.status(403).json({ error: "No credits" });
     }
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "Si profesionalny customer support. Pises kratke profesionalne odpovede v slovenskom jazyku." },
-        { role: "user", content: "Napís odpoved na tuto recenziu: " + review }
-      ],
-    });
+
+    const prompt = "Si profesionalny customer support. Napís kratku profesionalnu odpoved v slovenskom jazyku na tuto recenziu zakaznika: " + review;
+
+    const geminiRes = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    );
+
+    const geminiData = await geminiRes.json();
+    const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Chyba generovania";
+
     await supabase.from("users").update({ credits: user.credits - 1 }).eq("id", userId);
-    res.json({ reply: completion.choices[0].message.content, credits: user.credits - 1 });
+
+    res.json({ reply, credits: user.credits - 1 });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error");
@@ -55,7 +67,14 @@ app.post("/create-checkout-session", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
-      line_items: [{ price_data: { currency: "eur", product_data: { name: "AI Review Tool - 50 kreditov" }, unit_amount: 1000 }, quantity: 1 }],
+      line_items: [{
+        price_data: {
+          currency: "eur",
+          product_data: { name: "AI Review Tool - 50 kreditov" },
+          unit_amount: 1000
+        },
+        quantity: 1
+      }],
       metadata: { userId },
       success_url: process.env.FRONTEND_URL + "/success?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: process.env.FRONTEND_URL + "/",
