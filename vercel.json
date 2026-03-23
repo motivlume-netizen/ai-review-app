@@ -4,9 +4,7 @@
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "config": { "distDir": "dist" }
     },
     {
       "src": "server/index.js",
@@ -14,21 +12,9 @@
     }
   ],
   "routes": [
-    {
-      "src": "/generate",
-      "dest": "server/index.js"
-    },
-    {
-      "src": "/create-checkout-session",
-      "dest": "server/index.js"
-    },
-    {
-      "src": "/webhook",
-      "dest": "server/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "client/dist/$1"
-    }
+    { "src": "/generate", "dest": "server/index.js" },
+    { "src": "/create-checkout-session", "dest": "server/index.js" },
+    { "src": "/webhook", "dest": "server/index.js" },
+    { "src": "/(.*)", "dest": "client/dist/index.html" }
   ]
 }
