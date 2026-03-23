@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 function generateUserId() {
   const existing = localStorage.getItem("userId");
   if (existing) return existing;
@@ -21,7 +19,7 @@ function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("session_id")) {
+    if (params.get("success")) {
       setPaid(true);
       setCredits(50);
     }
@@ -33,29 +31,37 @@ function App() {
     setLoading(true);
     setResponse("");
     try {
-      const res = await fetch(API_URL + "/generate", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ review, userId }),
       });
-      if (res.status === 403) { setCredits(0); setLoading(false); return; }
+      if (res.status === 403) {
+        setCredits(0);
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       setResponse(data.reply);
       setCredits(data.credits ?? credits - 1);
-    } catch { alert("Chyba! Skus znova."); }
+    } catch {
+      alert("Chyba! Skus znova.");
+    }
     setLoading(false);
   };
 
   const buyCredits = async () => {
     try {
-      const res = await fetch(API_URL + "/create-checkout-session", {
+      const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
       window.location.href = data.url;
-    } catch { alert("Chyba pri platbe."); }
+    } catch {
+      alert("Chyba pri platbe.");
+    }
   };
 
   const copyToClipboard = () => {
@@ -85,7 +91,9 @@ function App() {
             onChange={e => setReview(e.target.value)}
             style={{ width: "100%", height: 130, border: "2px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", fontSize: 15, resize: "vertical", boxSizing: "border-box", outline: "none" }}
           />
-          <button onClick={generate} disabled={loading || credits <= 0}
+          <button
+            onClick={generate}
+            disabled={loading || credits <= 0}
             style={{ width: "100%", marginTop: 14, padding: "16px 0", background: loading || credits <= 0 ? "#94a3b8" : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", color: "white", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 700, cursor: loading || credits <= 0 ? "not-allowed" : "pointer" }}>
             {loading ? "Generujem..." : "Vygeneruj odpoved"}
           </button>
