@@ -37,6 +37,8 @@ export default async function handler(req, res) {
     );
 
     const geminiData = await geminiRes.json();
+        console.log("GEMINI_KEY_SET:", !!process.env.GEMINI_API_KEY);
+        console.log("GEMINI_RESPONSE:", JSON.stringify(geminiData));
     const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Chyba generovania";
 
     await supabase.from("users").update({ credits: user.credits - 1 }).eq("id", userId);
