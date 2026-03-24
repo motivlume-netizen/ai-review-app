@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         const prompt = "Si profesionalny customer support. Napís kratku profesionalnu odpoved v slovenskom jazyku na tuto recenziu zakaznika: " + review;
 
       const geminiRes = await fetch(
-              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
+              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
         {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
